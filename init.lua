@@ -1,0 +1,5 @@
+require("animator.set")
+require("animator.packer")
+require("animator.remap")
+require("animator.mergeClipboard")
+print("SUCCESS")
