@@ -2,3 +2,4 @@ packer-compiled.lua
 autoload/
 plugin/*
 *.temp
+nvim/
