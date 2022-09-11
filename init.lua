@@ -1,6 +1,6 @@
 require("animator.set")
 require("animator.packer")
+require("animator.nvim-cmp")
 require("animator.remap")
 require("animator.mergeClipboard")
 require("animator.tree-sitter")
-print("SUCCESS")

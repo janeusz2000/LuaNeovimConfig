@@ -1,4 +1,5 @@
 local encoding = "utf-8"
+local tabstop = 2
 
 vim.g.mapleader = " "
 
@@ -15,9 +16,9 @@ vim.opt.scrolloff = 8
 vim.opt.shiftwidth = 4
 vim.opt.signcolumn = "number"
 vim.opt.smartindent = true
-vim.opt.softtabstop = 4
+vim.opt.softtabstop = tabstop
 vim.opt.swapfile = false
-vim.opt.tabstop = 4
+vim.opt.tabstop = tabstop
 vim.opt.termguicolors = true
 vim.opt.undodir = "~/.temp/nvim/undodir"
 vim.opt.wrap = false
