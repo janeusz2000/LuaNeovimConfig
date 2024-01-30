@@ -1,0 +1,8 @@
+require("animator.set")
+require("animator.packer")
+require("animator.telescope")
+require("animator.tree-sitter")
+require("animator.nvim-cmp")
+require("animator.remap")
+require("animator.mergeClipboard")
+require("animator.copilot")
