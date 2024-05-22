@@ -1,14 +1,6 @@
 local cmp = require('cmp')
 
 
--- Copilot 
-require("copilot").setup({
-  suggetion  = { enabled = false },
-  panel = { enabled = false },
-})
-
-require("copilot_cmp").setup()
-
 cmp.setup({
   snippet = {
     expand = function(args)
@@ -28,7 +20,6 @@ cmp.setup({
   }),
   sources = cmp.config.sources(
     {
-      { name = "copilot", group_index = 2 },
       { name = 'nvim_lsp' },
       { name = 'vsnip' }, 
     }, 
@@ -39,8 +30,6 @@ cmp.setup({
   sorting = {
     priority_weight = 1,
     comparators = {
-      require("copilot_cmp.comparators").prioritize,
-
       -- Below is the default comparitor list and order for nvim-cmp
       cmp.config.compare.offset,
       -- cmp.config.compare.scopes, --this is commented in nvim-cmp too
