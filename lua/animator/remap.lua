@@ -47,3 +47,6 @@ nnoremap("<leader>h5", ":lua require(\"harpoon.ui\").nav_file(5)<CR>")
 
 -- error remap
 nmap("<leader>e", ":lua vim.diagnostic.open_float(0, {scope=\"line\"})<CR>")
+
+-- close quickFix list
+nnoremap("<leader>b", ":cclose<CR>")

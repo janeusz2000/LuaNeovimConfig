@@ -1,6 +1,5 @@
 local cmp = require('cmp')
 
-
 cmp.setup({
   snippet = {
     expand = function(args)
@@ -62,37 +61,4 @@ sources = cmp.config.sources({
   { name = 'cmdline' }
 })
 })
-
--- Setup lspconfig.
-local capabilities = require('cmp_nvim_lsp').default_capabilities(vim.lsp.protocol.make_client_capabilities())
--- Replace <YOUR_LSP_SERVER> with each lsp server you've enabled.
-
--- This needs to be fixed because clangd does not work propertly in this case.
-require('lspconfig').clangd.setup {
-    cmd = {
-        "clangd-17",
-        "--log=verbose",
-        "--background-index"
-    },
-    capabilities = capabilities
-}
-
-require('lspconfig').rust_analyzer.setup {
-  capabilities = capabilities,
-}
-
-require('lspconfig').pylsp.setup{
-  settings = {
-    pylsp = {
-      plugins = {
-        pycodestyle = {
-          ignore = {'W391'},
-          maxLineLength = 100
-        }
-      }
-    }
-  }
-}
-
-require('lspconfig').tsserver.setup{}
 
