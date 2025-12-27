@@ -2,7 +2,7 @@ return {
   "nvim-treesitter/nvim-treesitter",
   build = ":TSUpdate",
   config = function()
-    require("nvim-treesitter.config").setup({
+    local ts_config = {
       -- Install parsers synchronously (only applied to `ensure_installed`)
       sync_install = false,
 
@@ -41,9 +41,21 @@ return {
         -- Instead of true it can also be a list of languages
         additional_vim_regex_highlighting = { "markdown" },
       },
-    })
+    }
+
+    require("nvim-treesitter.config").setup(ts_config)
+    vim.g._nvim_treesitter_config = ts_config
 
     local parser_configs = require("nvim-treesitter.parsers")
+    if parser_configs.ft_to_lang == nil then
+      parser_configs.ft_to_lang = function(ft)
+        return vim.treesitter.language.get_lang(ft) or ft
+      end
+    end
+    if parser_configs.get_parser == nil then
+      parser_configs.get_parser = vim.treesitter.get_parser
+    end
+
     parser_configs.templ = {
       install_info = {
         url = "https://github.com/vrischmann/tree-sitter-templ.git",
