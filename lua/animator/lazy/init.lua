@@ -4,4 +4,5 @@ return {
         name = "plenary"
     },
     "eandrju/cellular-automaton.nvim",
+    require("animator.lazy.autopairs"),
 }
