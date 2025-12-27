@@ -98,12 +98,15 @@ return {
             end,
         }
 
+        local is_macos = vim.loop.os_uname().sysname == "Darwin"
         local ensure_installed = {
             "lua_ls",
             "rust_analyzer",
             "gopls",
-            "lua_ls"
         }
+        if not is_macos then
+            table.insert(ensure_installed, "clangd")
+        end
 
         if mason_lspconfig.setup_handlers then
             mason_lspconfig.setup({ ensure_installed = ensure_installed })
@@ -115,19 +118,22 @@ return {
             })
         end
 
+        local clangd_config = {
+            capabilities = capabilities,
+            on_attach = on_attach
+        }
+        if is_macos then
+            local mac_clangd = "/Library/Developer/CommandLineTools/usr/bin/clangd"
+            if vim.fn.executable(mac_clangd) == 1 then
+                clangd_config.cmd = { mac_clangd }
+            end
+        end
+
         if vim.lsp.config and vim.lsp.enable then
-            vim.lsp.config("clangd", {
-                cmd = { "/Library/Developer/CommandLineTools/usr/bin/clangd" },
-                capabilities = capabilities,
-                on_attach = on_attach
-            })
+            vim.lsp.config("clangd", clangd_config)
             vim.lsp.enable("clangd")
         else
-            require("lspconfig").clangd.setup({
-                cmd = { "/Library/Developer/CommandLineTools/usr/bin/clangd" },
-                capabilities = capabilities,
-                on_attach = on_attach
-            })
+            require("lspconfig").clangd.setup(clangd_config)
         end
 
         local cmp_select = { behavior = cmp.SelectBehavior.Select }
