@@ -26,6 +26,8 @@ vim.opt.backupdir = os.getenv("HOME") .. "/.vim/backupdir"
 vim.opt.wrap = false
 vim.opt.writebackup = false
 
+vim.g.codex_stream_lines = 12
+
 vim.opt.signcolumn = "yes"
 vim.opt.isfname:append("@-@")
 vim.opt.updatetime = 50
