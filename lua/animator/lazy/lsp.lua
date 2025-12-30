@@ -40,6 +40,7 @@ return {
         "L3MON4D3/LuaSnip",
         "saadparwaiz1/cmp_luasnip",
         "j-hui/fidget.nvim",
+        "folke/neodev.nvim",
     },
 
     config = function()
@@ -47,6 +48,7 @@ return {
             formatters_by_ft = {
             }
         })
+        require("neodev").setup({})
         local cmp = require('cmp')
         local cmp_lsp = require("cmp_nvim_lsp")
         local capabilities = vim.tbl_deep_extend(
@@ -88,10 +90,15 @@ return {
                     capabilities = capabilities,
                     settings = {
                         Lua = {
-                            runtime = { version = "Lua 5.1" },
+                            runtime = { version = "LuaJIT" },
                             diagnostics = {
                                 globals = { "bit", "vim", "it", "describe", "before_each", "after_each" },
-                            }
+                            },
+                            workspace = {
+                                library = vim.api.nvim_get_runtime_file("", true),
+                                checkThirdParty = false,
+                            },
+                            telemetry = { enable = false },
                         }
                     }
                 }
