@@ -5,6 +5,21 @@ return {
   -- packer harpoon installations
   lazy = false,
   config = function()
+    -- Harpoon installation when packer was installed previouslly on the machine
+    -- can get a little bit funky. Lets make it less funky :D
+    local paths = vim.opt.runtimepath:get()
+    local filtered = {}
+    for _, p in ipairs(paths) do
+      if not string.find(p, "/site/pack/packer/start/harpoon", 1, true) then
+        table.insert(filtered, p)
+      end
+    end
+    if #filtered ~= #paths then
+      vim.opt.runtimepath = table.concat(filtered, ",")
+    end
+
+    -- continue normallt with harpoon inittialization
+
     local harpoon = require "harpoon"
     harpoon:setup()
 
