@@ -10,10 +10,11 @@ return {
     require('telescope').setup({})
 
     local ok_utils, previewers_utils = pcall(require, "telescope.previewers.utils")
-    if ok_utils then
+    if ok_utils and not previewers_utils._animator_ts_wrapped then
+      previewers_utils._animator_ts_wrapped = true
       local attempted = {}
       local orig_ts = previewers_utils.ts_highlighter
-      previewers_utils.ts_highlighter = function(bufnr, ft)
+      local override_ts = function(bufnr, ft)
         local ok, res = pcall(orig_ts, bufnr, ft)
         if ok then
           return res
@@ -25,11 +26,14 @@ return {
         if lang and attempted[lang] ~= true and vim.fn.exists(":TSInstall") == 2 then
           attempted[lang] = true
           vim.schedule(function()
-            pcall(vim.cmd, "TSInstall " .. lang)
+            pcall(function()
+              vim.cmd("TSInstall " .. lang)
+            end)
           end)
         end
         return false
       end
+      rawset(previewers_utils, "ts_highlighter", override_ts)
     end
 
     local builtin = require('telescope.builtin')

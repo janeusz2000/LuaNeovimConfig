@@ -46,21 +46,18 @@ return {
     require("nvim-treesitter.config").setup(ts_config)
     vim.g._nvim_treesitter_config = ts_config
 
-    local parser_configs = require("nvim-treesitter.parsers")
-    if parser_configs.ft_to_lang == nil then
-      parser_configs.ft_to_lang = function(ft)
-        return vim.treesitter.language.get_lang(ft) or ft
-      end
-    end
-    if parser_configs.get_parser == nil then
-      parser_configs.get_parser = vim.treesitter.get_parser
-    end
-
+    local parsers = require("nvim-treesitter.parsers")
+    ---@type table<string, ParserInfo>
+    local parser_configs = (parsers.get_parser_configs and parsers.get_parser_configs())
+      or parsers.parsers
+      or parsers
     parser_configs.templ = {
+      tier = 0,
       install_info = {
         url = "https://github.com/vrischmann/tree-sitter-templ.git",
         files = { "src/parser.c", "src/scanner.c" },
         branch = "master",
+        revision = "master",
       },
     }
 
