@@ -5,4 +5,5 @@ return {
     },
     "eandrju/cellular-automaton.nvim",
     require("animator.lazy.autopairs"),
+    require("animator.lazy.lsp"),
 }
