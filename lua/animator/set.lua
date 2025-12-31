@@ -26,6 +26,17 @@ vim.opt.backupdir = os.getenv("HOME") .. "/.vim/backupdir"
 vim.opt.wrap = false
 vim.opt.writebackup = false
 
+vim.g.codex_stream_lines = 12
+vim.g.codex_status_updates = true
+vim.g.codex_status_prefix = "STATUS:"
+-- Use non-PTY so stderr is captured and logged separately.
+vim.g.codex_use_pty = false
+vim.g.codex_use_json = true
+vim.g.codex_command = { "codex", "exec", "--json", "-" }
+vim.g.codex_status_tick_ms = 1000
+vim.g.codex_fallback_context_lines = 0
+vim.g.codex_fallback_parent_until_type_change = true
+
 vim.opt.signcolumn = "yes"
 vim.opt.isfname:append("@-@")
 vim.opt.updatetime = 50
