@@ -45,15 +45,15 @@ nnoremap("<leader>lsp", "<cmd>LspRestart<cr>")
 xnoremap("<leader>p", [["_dP]])
 
 -- Codex completion for visual selection or scope at cursor
-xnoremap("<leader>[", function()
+xnoremap("<leader>i", function()
     require("animator.codex").complete_selection_or_scope()
 end)
-nnoremap("<leader>[", function()
+nnoremap("<leader>i", function()
     require("animator.codex").complete_selection_or_scope()
 end)
 
 -- Open last Codex log
-nnoremap("<leader>]", function()
+nnoremap("<leader><leader>i", function()
     require("animator.codex").open_last_log()
 end)
 
