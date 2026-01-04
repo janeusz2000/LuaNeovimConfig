@@ -2,6 +2,9 @@ local M = {}
 
 local namespace = vim.api.nvim_create_namespace("animator_codex")
 local last_log_path = nil
+local default_status_hl = "AnimatorCodexStatus"
+
+vim.api.nvim_set_hl(0, default_status_hl, { fg = "#bfbfbf", default = true })
 
 local function append_log(path, line)
     if not path then
@@ -103,10 +106,19 @@ local function get_text(bufnr, range)
 end
 
 local function set_status(bufnr, range, message, extmark_id)
-    return vim.api.nvim_buf_set_extmark(bufnr, namespace, range.start_row - 1, 0, {
+    local buf_last_line = vim.api.nvim_buf_line_count(bufnr)
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local status_row
+    if range.start_row == 1 and range.end_row == buf_last_line then
+        status_row = math.max(cursor[1] - 1, 0)
+    else
+        status_row = math.max(range.end_row - 1, 0)
+    end
+    local status_hl = vim.g.animator_codex_status_hl or default_status_hl
+    return vim.api.nvim_buf_set_extmark(bufnr, namespace, status_row, 0, {
         id = extmark_id,
-        virt_text = { { message, "Comment" } },
-        virt_text_pos = "eol",
+        virt_lines = { { { message, status_hl } } },
+        virt_lines_above = false,
     })
 end
 
@@ -132,6 +144,8 @@ local function build_prompt(bufnr, range, scope_label, task_label, include_full_
             and "Return only the replacement text for the current line."
         or scope_label == "Full buffer"
             and "Return only the replacement text for the full buffer."
+        or scope_label == "Context line"
+            and "Return only the replacement text for the detected scope."
         or "Return only the replacement text for the selection."
     local should_include_full_buffer = include_full_buffer ~= false
 
@@ -198,7 +212,28 @@ local function start_job(bufnr, range, prompt)
     local stdout_lines = {}
     local stderr_output_lines = {}
     local capture_stderr_output = false
-    local extmark_id = set_status(bufnr, range, "Codex: I got It!", nil)
+    local extmark_id = nil
+    local status_timer = nil
+    local status_message = "Codex: initializing..."
+    local start_time = vim.loop.hrtime()
+
+    local function format_elapsed()
+        local elapsed_ms = (vim.loop.hrtime() - start_time) / 1e6
+        return string.format("%.1fs", elapsed_ms / 1000)
+    end
+
+    local function update_status()
+        if not status_message then
+            return
+        end
+        local message = string.format("%s (%s)", status_message, format_elapsed())
+        extmark_id = set_status(bufnr, range, message, extmark_id)
+    end
+
+    status_timer = vim.loop.new_timer()
+    status_timer:start(0, 200, function()
+        vim.schedule(update_status)
+    end)
 
     local job_id = vim.fn.jobstart(command, {
         stdout_buffered = true,
@@ -219,7 +254,14 @@ local function start_job(bufnr, range, prompt)
             end
             for _, line in ipairs(data) do
                 if line ~= "" then
-                    append_log(log_path, "stderr: " .. line)
+                    if line:match("^%*%*.*%*%*$") then
+                        local cleaned = vim.trim(line:gsub("^%*%*", ""):gsub("%*%*$", ""))
+                        status_message = "Codex: " .. cleaned
+                        append_log(log_path, status_message)
+                        vim.schedule(update_status)
+                    else
+                        append_log(log_path, "stderr: " .. line)
+                    end
                     if line == "codex" or line == "assistant" or line == "final" then
                         capture_stderr_output = true
                     elseif capture_stderr_output then
@@ -231,16 +273,16 @@ local function start_job(bufnr, range, prompt)
                             table.insert(stderr_output_lines, line)
                         end
                     end
-                    if not capture_stderr_output then
-                        vim.schedule(function()
-                            extmark_id = set_status(bufnr, range, "Codex: " .. line, extmark_id)
-                        end)
-                    end
                 end
             end
         end,
         on_exit = function(_, exit_code)
             vim.schedule(function()
+                if status_timer then
+                    status_timer:stop()
+                    status_timer:close()
+                    status_timer = nil
+                end
                 clear_status(bufnr, extmark_id)
                 if exit_code ~= 0 then
                     vim.notify("Codex failed. See log: " .. log_path, vim.log.levels.ERROR)
@@ -270,8 +312,21 @@ end
 
 function M.complete_selection_or_scope()
     local bufnr = vim.api.nvim_get_current_buf()
-    local range = get_visual_range(bufnr) or get_fallback_range(bufnr)
-    local prompt = build_prompt(bufnr, range)
+    local visual_range = get_visual_range(bufnr)
+    local range = visual_range or get_fallback_range(bufnr)
+    local prompt
+    if visual_range then
+        prompt = build_prompt(bufnr, range)
+    else
+        range = get_full_buffer_range(bufnr)
+        prompt = build_prompt(
+            bufnr,
+            range,
+            "Full buffer",
+            "Complete the scope based on the context of the line under the cursor. The scope could be a class, method, function, comment, variable, or other logical block. Update the full buffer accordingly.",
+            false
+        )
+    end
     start_job(bufnr, range, prompt)
 end
 
