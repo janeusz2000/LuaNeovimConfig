@@ -45,17 +45,17 @@ nnoremap("<leader>lsp", "<cmd>LspRestart<cr>")
 xnoremap("<leader>p", [["_dP]])
 
 -- Codex completion for visual selection or scope at cursor
--- xnoremap("<leader>i", function()
---     require("animator.codex").complete_selection_or_scope()
--- end)
--- nnoremap("<leader>i", function()
---     require("animator.codex").complete_selection_or_scope()
--- end)
+xnoremap("<leader>i", function()
+    require("animator.codex").complete_selection_or_scope()
+end)
+nnoremap("<leader>i", function()
+    require("animator.codex").complete_selection_or_scope()
+end)
 
--- -- Open last Codex log
--- nnoremap("<leader><leader>i", function()
---     require("animator.codex").open_last_log()
--- end)
+-- Open last Codex log
+nnoremap("<leader><leader>i", function()
+    require("animator.codex").open_last_log()
+end)
 
 -- yionk to the system clipboard if simple "y" doesn't work...
 vim.keymap.set({"n", "v"}, "<leader>y", [["+y]])
