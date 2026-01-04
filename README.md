@@ -1,6 +1,3 @@
-** This is my Lazy neovim config **
+# TODO: we need to do better job here, but its' not super neccesary right now
 
----
-this is some work based on @ThePrimeagen init.lua and some others work.
-
-Enjoy :D
+for the detailed plan, please see `CODEX_PLAN_EXECUTION.md`
