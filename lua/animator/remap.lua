@@ -49,7 +49,7 @@ xnoremap("<leader>i", function()
     require("animator.codex").complete_selection_or_scope()
 end)
 nnoremap("<leader>i", function()
-    require("animator.codex").complete_selection_or_scope()
+    require("animator.codex").complete_full_buffer()
 end)
 
 -- Open last Codex log

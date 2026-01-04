@@ -80,6 +80,17 @@ local function get_fallback_range(bufnr)
     }
 end
 
+local function get_full_buffer_range(bufnr)
+    local last_line = vim.api.nvim_buf_line_count(bufnr)
+    local line = vim.api.nvim_buf_get_lines(bufnr, last_line - 1, last_line, false)[1] or ""
+    return {
+        start_row = 1,
+        start_col = 0,
+        end_row = last_line,
+        end_col = #line,
+    }
+end
+
 local function get_text(bufnr, range)
     return vim.api.nvim_buf_get_text(
         bufnr,
@@ -91,8 +102,8 @@ local function get_text(bufnr, range)
     )
 end
 
-local function set_status(bufnr, range, message, extmark_id)
-    return vim.api.nvim_buf_set_extmark(bufnr, namespace, range.start_row - 1, 0, {
+local function set_status(bufnr, status_row, message, extmark_id)
+    return vim.api.nvim_buf_set_extmark(bufnr, namespace, status_row - 1, 0, {
         id = extmark_id,
         virt_text = { { message, "Comment" } },
         virt_text_pos = "eol",
@@ -105,7 +116,7 @@ local function clear_status(bufnr, extmark_id)
     end
 end
 
-local function build_prompt(bufnr, range)
+local function build_prompt(bufnr, range, scope_label, task_label, include_full_buffer)
     local buffer_path = vim.api.nvim_buf_get_name(bufnr)
     local buffer_dir = buffer_path ~= "" and vim.fn.fnamemodify(buffer_path, ":h") or vim.loop.cwd()
     local repo_root = resolve_repo_root(buffer_dir) or "unknown"
@@ -115,25 +126,36 @@ local function build_prompt(bufnr, range)
     local selection_lines = get_text(bufnr, range)
     local buffer_lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
 
+    local scope_title = scope_label or "Selection"
+    local task_title = task_label or "Replace the selected text in the current buffer with the correct output."
+    local return_label = scope_label == "Current line"
+            and "Return only the replacement text for the current line."
+        or scope_label == "Full buffer"
+            and "Return only the replacement text for the full buffer."
+        or "Return only the replacement text for the selection."
+    local should_include_full_buffer = include_full_buffer ~= false
+
     local prompt_lines = {
-        "Task: Replace the selected text in the current buffer with the correct output.",
+        "Task: " .. task_title,
         "Buffer path: " .. (buffer_path ~= "" and buffer_path or "unknown"),
         "Repo root: " .. repo_root,
         "Cursor: line " .. cursor[1] .. ", col " .. cursor[2],
         "Filetype: " .. (filetype ~= "" and filetype or "unknown"),
         "You may inspect repository context if needed.",
         "",
-        "Selection:",
+        scope_title .. ":",
     }
     vim.list_extend(prompt_lines, selection_lines)
+    if should_include_full_buffer then
+        vim.list_extend(prompt_lines, {
+            "",
+            "Full buffer:",
+        })
+        vim.list_extend(prompt_lines, buffer_lines)
+    end
     vim.list_extend(prompt_lines, {
         "",
-        "Full buffer:",
-    })
-    vim.list_extend(prompt_lines, buffer_lines)
-    vim.list_extend(prompt_lines, {
-        "",
-        "Return only the replacement text for the selection.",
+        return_label,
         "Do not include markdown, backticks, commentary, or status lines.",
     })
 
@@ -155,7 +177,7 @@ local function replace_range(bufnr, range, new_text)
     )
 end
 
-local function start_job(bufnr, range, prompt)
+local function start_job(bufnr, range, prompt, status_row)
     local buffer_path = vim.api.nvim_buf_get_name(bufnr)
     local buffer_dir = buffer_path ~= "" and vim.fn.fnamemodify(buffer_path, ":h") or vim.loop.cwd()
     local repo_root = resolve_repo_root(buffer_dir)
@@ -174,7 +196,9 @@ local function start_job(bufnr, range, prompt)
     append_log(log_path, "Command: " .. table.concat(command, " "))
 
     local stdout_lines = {}
-    local extmark_id = set_status(bufnr, range, "Codex: I got It!", nil)
+    local stderr_output_lines = {}
+    local capture_stderr_output = false
+    local extmark_id = set_status(bufnr, status_row, "Codex: I got It!", nil)
 
     local job_id = vim.fn.jobstart(command, {
         stdout_buffered = true,
@@ -196,9 +220,22 @@ local function start_job(bufnr, range, prompt)
             for _, line in ipairs(data) do
                 if line ~= "" then
                     append_log(log_path, "stderr: " .. line)
-                    vim.schedule(function()
-                        extmark_id = set_status(bufnr, range, "Codex: " .. line, extmark_id)
-                    end)
+                    if line == "codex" or line == "assistant" or line == "final" then
+                        capture_stderr_output = true
+                    elseif capture_stderr_output then
+                        if line:match("^tokens used") or line == "exec" or line == "thinking"
+                                or line == "user" or line:match("^mcp startup")
+                                or line == "--------" then
+                            capture_stderr_output = false
+                        else
+                            table.insert(stderr_output_lines, line)
+                        end
+                    end
+                    if not capture_stderr_output then
+                        vim.schedule(function()
+                            extmark_id = set_status(bufnr, status_row, "Codex: " .. line, extmark_id)
+                        end)
+                    end
                 end
             end
         end,
@@ -211,6 +248,9 @@ local function start_job(bufnr, range, prompt)
                     return
                 end
                 local output = table.concat(stdout_lines, "\n")
+                if output == "" and #stderr_output_lines > 0 then
+                    output = table.concat(stderr_output_lines, "\n")
+                end
                 replace_range(bufnr, range, output)
                 append_log(log_path, "Exit code: " .. exit_code)
                 append_log(log_path, "Codex invocation finished.")
@@ -232,7 +272,25 @@ function M.complete_selection_or_scope()
     local bufnr = vim.api.nvim_get_current_buf()
     local range = get_visual_range(bufnr) or get_fallback_range(bufnr)
     local prompt = build_prompt(bufnr, range)
-    start_job(bufnr, range, prompt)
+    start_job(bufnr, range, prompt, range.start_row)
+end
+
+function M.complete_full_buffer()
+    local bufnr = vim.api.nvim_get_current_buf()
+    local range = get_full_buffer_range(bufnr)
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local prompt = build_prompt(
+        bufnr,
+        range,
+        "Full buffer",
+        "Replace the full buffer with the generated output only in the context of given neovim cursor. Context could be inside a function, lambda, class, method or scope implementation.",
+        false
+    )
+    start_job(bufnr, range, prompt, cursor[1])
+end
+
+function M.complete_current_line()
+    M.complete_full_buffer()
 end
 
 function M.open_last_log()
