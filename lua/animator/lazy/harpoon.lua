@@ -20,7 +20,7 @@ return {
 
     -- continue normallt with harpoon inittialization
 
-    local harpoon = require "harpoon"
+    local harpoon = require("harpoon")
     harpoon:setup()
 
     vim.keymap.set("n", "<leader>ha", function()

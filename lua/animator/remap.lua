@@ -44,19 +44,6 @@ nnoremap("<leader>lsp", "<cmd>LspRestart<cr>")
 -- leader paste does not override the paste
 xnoremap("<leader>p", [["_dP]])
 
--- Codex completion for visual selection or scope at cursor
-xnoremap("<leader>i", function()
-    require("animator.codex").completeSelectionOrScope()
-end)
-nnoremap("<leader>i", function()
-    require("animator.codex").completeSelectionOrScope()
-end)
-
--- Open last Codex log
-nnoremap("<leader><leader>i", function()
-    require("animator.codex").openLastLog()
-end)
-
 -- yionk to the system clipboard if simple "y" doesn't work...
 vim.keymap.set({"n", "v"}, "<leader>y", [["+y]])
 nnoremap("<leader>Y", [["+Y]])
